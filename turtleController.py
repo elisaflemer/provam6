@@ -53,7 +53,7 @@ class Stack():
     def push(self, item):
         self.stack.append(item)
 
-    def pop(self, item):
+    def pop(self):
         return self.stack.pop()
 
 class MissionControl(deque):
@@ -77,7 +77,7 @@ class TurtleController(Node):
     Classe do controlador. É um nó de ROS
     """
     
-    def __init__(self, mission_control, control_period=0.02):
+    def __init__(self, mission_control, control_period=0.02, stack = Stack()):
         """
         Construtor da classe controladora.
         Aqui cria-se o publisher, a subscription e o timer.
@@ -89,6 +89,8 @@ class TurtleController(Node):
         self.pose = Pose(x=-40.0)
         self.setpoint = Pose(x=-40.0)
         self.mission_control = mission_control
+        self.stack = stack
+        self.initial_pose = Pose()
         self.publisher = self.create_publisher(
             msg_type=Twist,
             topic="/turtle1/cmd_vel",
@@ -144,12 +146,21 @@ class TurtleController(Node):
         # Se for a primeira vez passando por aqui, cria o setpoint.
         if self.setpoint.x == -40.0:
             print(f"Pose inicial: {self.pose}")
+            self.stack.push(self.pose)
+            print("PRIMEIRO PONTO DA STACK " + str(self.stack.stack))
             self.update_setpoint()
 
     def update_setpoint(self):
         if(len(self.mission_control) >= 1):
+            self.stack.push(self.pose)
             x, y = self.mission_control.dequeue()
             self.setpoint = self.pose + Pose(x, y)
+            print(f'Setpoint: {self.setpoint}')
+            
+        elif(len(self.stack.stack) >= 1):
+            print("STACK:" + str(self.stack.stack))
+            last_pose = self.stack.pop()
+            self.setpoint = last_pose
             print(f'Setpoint: {self.setpoint}')
         else:
             print(f"Pose final: {self.pose}")
